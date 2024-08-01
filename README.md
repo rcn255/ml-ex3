@@ -1,4 +1,4 @@
-#Image classification - Feature Extraction & Shallow vs. Deep Learning
+# Image classification - Feature Extraction & Shallow vs. Deep Learning
 
 How to start the program
 
