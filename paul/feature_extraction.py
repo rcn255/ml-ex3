@@ -3,7 +3,7 @@
 
 # ## Feature extraction with colour histograms
 
-# In[76]:
+# In[2]:
 
 
 import pickle
@@ -23,7 +23,7 @@ dataset_path = "data/cifar-10-batches-py"
 # pip install -U scikit-learn
 
 
-# In[77]:
+# In[3]:
 
 
 def unpickle(file):
@@ -59,19 +59,16 @@ def load_cifar10_dataset(dataset_path, bins=(16, 16, 16), color_space='LAB'):
             images.append(image)
     return np.array(data), np.array(labels), images
 
-
-
 dataset_path = "data/cifar-10-batches-py"
 
 # 
-bins = (8, 8, 8)  # Increase the number of bins
-color_space = 'LAB'  # Use the LAB colour space
-
+bins = (8, 8, 8)  # Increase the number of bins 
+color_space = 'HSV'  # LAB HSV 
 
 data, labels, images = load_cifar10_dataset(dataset_path, bins=bins, color_space=color_space)
 
 
-# In[78]:
+# In[4]:
 
 
 import matplotlib.pyplot as plt
@@ -97,17 +94,17 @@ display_image(first_image)
 
 # ### Exploring Histograms
 
-# In[79]:
+# In[5]:
 
 
 # Import plt 
 import matplotlib.pyplot as plt
 
 
-# In[80]:
+# In[12]:
 
 
-def plot_images_and_histograms(images, bins=(16, 16, 16), color_space='LAB'):
+def plot_images_and_histograms(images, bins=(8, 8, 8), color_space='LAB'):
     plt.figure(figsize=(15, 15))
     for i, image in enumerate(images):
         plt.subplot(5, 2, 2 * i + 1)
@@ -121,14 +118,16 @@ def plot_images_and_histograms(images, bins=(16, 16, 16), color_space='LAB'):
         # Plot histogram 
         plt.subplot(5, 2, 2 * i + 2)
         colors = ('b', 'g', 'r')
-        for j, col in enumerate(colors):
+        labels = ('Hue', 'Saturation', 'Value') if color_space == 'HSV' else ('Channel 1', 'Channel 2', 'Channel 3')
+        for j, (col, label) in enumerate(zip(colors, labels)):
             hist_part = hist[j * bins[0] * bins[1]: (j + 1) * bins[0] * bins[1]]
-            plt.plot(hist_part, color=col)
+            plt.plot(hist_part, color=col, label=label)
             plt.xlim([0, bins[0] * bins[1]])
         
         plt.title(f"Color Histogram {i+1}")
         plt.xlabel("Bins")
         plt.ylabel("Frequency")
+        plt.legend()
     
     plt.tight_layout()
     plt.show()
@@ -143,7 +142,7 @@ plot_images_and_histograms(example_images, bins=bins, color_space='HSV')
 
 # ###  Similarity
 
-# In[90]:
+# In[7]:
 
 
 import numpy as np
@@ -163,7 +162,7 @@ def extract_color_histogram(image, bins=(16, 16, 16), color_space='LAB'):
     cv2.normalize(hist, hist)
     return hist.flatten()
 
-def find_similar_images(reference_image, data, labels, num_similar=8, bins=(16, 16, 16), color_space='LAB'):
+def find_similar_images(reference_image, data, labels, num_similar=8, bins=(8, 8, 8), color_space='LAB'):
     ref_hist = extract_color_histogram(reference_image, bins=bins, color_space=color_space)
     
     distances = []
@@ -179,7 +178,7 @@ def find_similar_images(reference_image, data, labels, num_similar=8, bins=(16, 
     
     return similar_images, similar_labels
 
-def plot_images_and_histograms(reference_image, similar_images, similar_labels, bins=(16, 16, 16), color_space='LAB'):
+def plot_images_and_histograms(reference_image, similar_images, similar_labels, bins=(8, 8, 8), color_space='LAB'):
     plt.figure(figsize=(20, 15))
 
     plt.subplot(len(similar_images) + 1, 2, 1)
@@ -222,7 +221,7 @@ def plot_images_and_histograms(reference_image, similar_images, similar_labels, 
     plt.tight_layout()
     plt.show()
 
-bins = (10, 10, 10)
+bins = (8, 8, 8)
 color_space = 'HSV'
 
 dataset_path = "data/cifar-10-batches-py"
@@ -244,29 +243,21 @@ plot_images_and_histograms(reference_image, similar_images, similar_labels, bins
 # 
 # 
 # **More bins for the histogram**: 
-# Increasing the number of bins can improve the resolution of the colour histogram. Instead of 8 bins per channel, you could use 16 or even 32.
+# Increasing the number of bins can improve the resolution of the colour histogram. 8,16,32
 # 
 # 
 # **Other colour spaces**:
-# In addition to the HSV colour space, you could try out other colour spaces such as LAB or YUV to see if they deliver better results.
+# In addition to the HSV colour space, try out other colour spaces such as LAB (or YUV)
 # 
-# 
-# **Combination of features**
-# In addition to colour histograms, you could also include other features such as texture features (e.g. Gabor filters, Haralick features) or shape features.
-
-# In[ ]:
-
-
-
-
 
 # ## Application of shallow algorithms
 
-# In[91]:
+# In[8]:
 
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler
+
 
 # split the dataset into training and testing sets
 (trainX, testX, trainY, testY) = train_test_split(data, labels, test_size=0.25, random_state=42)
@@ -277,23 +268,86 @@ trainX = scaler.fit_transform(trainX)
 testX = scaler.transform(testX)
 
 
+# ### Bins
+
+# In[15]:
+
+
+bins_list = [(5,5,5), (8, 8, 8), (12,12,12),(16, 16, 16),(32, 32, 32)]
+#bins_list = [(5,5,5), (8, 8, 8), (12,12,12)]
+bins = (8, 8, 8)
+results = {}
+
+for bins in bins_list:
+    data, labels, images = load_cifar10_dataset(dataset_path, bins=bins, color_space='HSV')
+    trainX, testX, trainY, testY = train_test_split(data, labels, test_size=0.25, random_state=42)
+    scaler = StandardScaler()
+    trainX = scaler.fit_transform(trainX)
+    testX = scaler.transform(testX)
+
+    rf = RandomForestClassifier(n_estimators=100)
+    rf.fit(trainX, trainY)
+    rf_predictions = rf.predict(testX)
+    
+    accuracy = accuracy_score(testY, rf_predictions)
+    results[bins] = accuracy
+    print(f"Random Forest Accuracy with bins {bins}: {accuracy}")
+
+# Best Bin configuration
+best_bins = max(results, key=results.get)
+print(f"Best bins configuration: {best_bins}")
+
+
+# ### Color Spaces
+# 
+# 
+
+# In[17]:
+
+
+color_spaces = ['HSV', 'LAB']
+bins = (8, 8, 8)
+results = {}
+
+for color_space in color_spaces:
+    data, labels, images = load_cifar10_dataset(dataset_path, bins=bins, color_space=color_space)
+    
+    trainX, testX, trainY, testY = train_test_split(data, labels, test_size=0.25, random_state=42)
+    
+    scaler = StandardScaler()
+    trainX = scaler.fit_transform(trainX)
+    testX = scaler.transform(testX)
+    
+    rf = RandomForestClassifier(n_estimators=100)
+    rf.fit(trainX, trainY)
+    
+    rf_predictions = rf.predict(testX)
+    accuracy = accuracy_score(testY, rf_predictions)
+    
+    results[color_space] = accuracy
+    print(f"Random Forest Accuracy with bins {bins} and color space {color_space}: {accuracy}")
+
+best_config = max(results, key=results.get)
+print(f"Best color space configuration: {best_config}")
+
 
 # ## train and evaluate the shallow 
 
-# In[92]:
+# In[26]:
 
 
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, f1_score
 from sklearn.metrics import accuracy_score
 
 
 # ### RF
 
-# In[96]:
+# In[27]:
 
 
+np.random.seed(42)
 rf = RandomForestClassifier(n_estimators=100)
 rf.fit(trainX, trainY)
 rf_predictions = rf.predict(testX)
@@ -301,61 +355,83 @@ print("Random Forest Accuracy:", accuracy_score(testY, rf_predictions))
 print("Random Forest Classification Report:\n", classification_report(testY, rf_predictions))
 
 
+f1 = f1_score(testY, rf_predictions, average='weighted')  # 'weighted' takes into account the class imbalances
+print("Random Forest F1 Score:", f1)
 
-# In[95]:
+
+# In[65]:
 
 
-# plot confusion matrix
+# set seed for reproducibility
+# hyperparameter tuning for Random Forest
+
+
+np.random.seed(42)
+rf = RandomForestClassifier(n_estimators=1500, random_state=42, n_jobs=-1, min_samples_split = 3, min_samples_leaf = 1, max_depth = 35)
+rf.fit(trainX, trainY)
+rf_predictions = rf.predict(testX)
+print("Random Forest Accuracy:", accuracy_score(testY, rf_predictions))
+print("Random Forest Classification Report:\n", classification_report(testY, rf_predictions))
+
+
+f1 = f1_score(testY, rf_predictions, average='weighted')  # 'weighted' takes into account the class imbalances
+print("Random Forest F1 Score:", f1)
+
+
+# ### Optimization
+
+# #### Optimising parameters
+
+# In[68]:
+
+""" 
+param_grid = {
+    'n_estimators': [100, 300, 1000],  
+    'max_features': ['auto', 'sqrt', 'log2'],  
+    'max_depth': [None, 20, 35, 40],  
+    'min_samples_split': [2, 5],  
+    'min_samples_leaf': [1, 4],  
+    'bootstrap': [True] 
+}
+
+rf_grid = RandomForestClassifier()
+
+
+grid_search = GridSearchCV(estimator=rf_grid, param_grid=param_grid, cv=3, n_jobs=-1, verbose=2)
+grid_search.fit(trainX, trainY)
+
+# Print the best parameters
+print("Best parameters found: ", grid_search.best_params_)
+
+# Evaluate the best model
+rf_best = grid_search.best_estimator_
+rf_predictions = rf_best.predict(testX)
+print("Optimized Random Forest Accuracy:", accuracy_score(testY, rf_predictions))
+print("Optimized Random Forest Classification Report:\n", classification_report(testY, rf_predictions))
+
+
+# In[70]:
+
+
+f1 = f1_score(testY, rf_predictions, average='weighted')  # 'weighted' takes into account the class imbalances
+print("Random Forest F1 Score:", f1)
+
+
+# In[69]:
+"""
+
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
+import matplotlib.pyplot as plt
 
 rf_cm = confusion_matrix(testY, rf_predictions)
+
+fmt = 'd'
+
 plt.figure(figsize=(10, 8))
-sns.heatmap(rf_cm, annot=True, cmap='Blues', xticklabels=range(10), yticklabels=range(10))
+sns.heatmap(rf_cm, annot=True, cmap='Blues', fmt=fmt, xticklabels=range(10), yticklabels=range(10))
 plt.xlabel('Predicted labels')
 plt.ylabel('True labels')
 plt.title('Confusion Matrix')
 plt.show()
-
-
-# ### SVM
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[20]:
-
-
-svm = SVC(kernel='linear')
-svm.fit(trainX, trainY)
-svm_predictions = svm.predict(testX)
-print("SVM Accuracy:", accuracy_score(testY, svm_predictions))
-print("SVM Classification Report:\n", classification_report(testY, svm_predictions))
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
 
