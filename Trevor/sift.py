@@ -25,8 +25,8 @@ fashion_mnist_labels = [
 ]
 
 # Predefined paths for the datasets
-cifar10_data_dir = "paul/data/cifar-10-batches-py"
-fashion_mnist_data_dir = "paul/data/minst_clothing"
+cifar10_data_dir = "../paul/data/cifar-10-batches-py"
+fashion_mnist_data_dir = "../paul/data/minst_clothing"
 
 # Load CIFAR-10 or Fashion MNIST data
 def load_dataset(dataset_name):
